@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Mic, MicOff, Camera, CameraOff } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import { onSignal, sendSignal } from '../../services/callService';
 
 const VideoStream = ({ callId, peerConnection, localStream, remoteStream, onStreamReady }) => {
   const localVideoRef = useRef(null);
@@ -38,6 +39,24 @@ const VideoStream = ({ callId, peerConnection, localStream, remoteStream, onStre
       remoteVideoRef.current.srcObject = remoteStream;
     }
   }, [remoteStream]);
+
+  useEffect(() => {
+    onSignal((signal) => {
+      if (peerConnection) {
+        if (signal.type === 'offer') {
+          peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
+          peerConnection.createAnswer().then(answer => {
+            peerConnection.setLocalDescription(answer);
+            sendSignal(answer);
+          });
+        } else if (signal.type === 'answer') {
+          peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
+        } else if (signal.candidate) {
+          peerConnection.addIceCandidate(new RTCIceCandidate(signal));
+        }
+      }
+    });
+  }, [peerConnection]);
 
   const toggleMute = () => {
     if (localStream) {

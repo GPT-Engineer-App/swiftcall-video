@@ -5,10 +5,17 @@ const API_URL = 'http://localhost:3000/api';
 let socket;
 
 export const initializeSocket = () => {
-  socket = io(API_URL);
+  socket = io(API_URL, {
+    transports: ['websocket'],
+    upgrade: false
+  });
   
   socket.on('connect', () => {
     console.log('Connected to signaling server');
+  });
+
+  socket.on('connect_error', (error) => {
+    console.error('Connection error:', error);
   });
 
   return socket;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button"
 import VideoStream from './VideoStream';
-import { startCall, endCall, joinCall } from '../../services/callService';
+import { startCall, endCall, joinCall, initializeSocket } from '../../services/callService';
 import { toast } from 'sonner';
 import { Phone, PhoneOff, Copy, MessageSquare, Users, Share2, Settings, Layout } from 'lucide-react';
 import { Input } from "@/components/ui/input"
@@ -46,9 +46,13 @@ const CallPage = () => {
 
   useEffect(() => {
     setupPeerConnection();
+    const socket = initializeSocket();
     return () => {
       if (peerConnection) {
         peerConnection.close();
+      }
+      if (socket) {
+        socket.disconnect();
       }
     };
   }, [setupPeerConnection]);

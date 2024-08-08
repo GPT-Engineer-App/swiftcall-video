@@ -12,6 +12,7 @@ const Register = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [isOtpSent, setIsOtpSent] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleRegister = async (e) => {
@@ -20,25 +21,31 @@ const Register = () => {
       toast.error('Passwords do not match');
       return;
     }
+    setIsLoading(true);
     try {
       await register(email, name, password);
       setIsOtpSent(true);
       toast.success('Registration successful! Please check your email for OTP.');
     } catch (error) {
       console.error('Registration failed:', error);
-      toast.error('Registration failed. Please try again.');
+      toast.error(error.response?.data?.message || 'Registration failed. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleVerifyEmail = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
     try {
       await verifyEmail(email, otp);
       toast.success('Email verified successfully! You can now log in.');
       navigate('/login');
     } catch (error) {
       console.error('Email verification failed:', error);
-      toast.error('Email verification failed. Please try again.');
+      toast.error(error.response?.data?.message || 'Email verification failed. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -88,7 +95,9 @@ const Register = () => {
                 className="w-full"
               />
             </div>
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">Register</Button>
+            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
+              {isLoading ? 'Registering...' : 'Register'}
+            </Button>
           </form>
         ) : (
           <form onSubmit={handleVerifyEmail}>
@@ -102,7 +111,9 @@ const Register = () => {
                 className="w-full"
               />
             </div>
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">Verify Email</Button>
+            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
+              {isLoading ? 'Verifying...' : 'Verify Email'}
+            </Button>
           </form>
         )}
         <p className="mt-4 text-center text-gray-600">

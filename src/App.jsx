@@ -7,6 +7,7 @@ import Index from './pages/Index';
 import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
 import CallPage from './components/Call/CallPage';
+import ProtectedRoute from './components/Auth/ProtectedRoute';
 
 const queryClient = new QueryClient();
 
@@ -19,7 +20,11 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/call" element={<CallPage />} />
+          <Route path="/call" element={
+            <ProtectedRoute>
+              <CallPage />
+            </ProtectedRoute>
+          } />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

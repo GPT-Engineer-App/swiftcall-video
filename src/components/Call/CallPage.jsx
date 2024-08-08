@@ -1,10 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button"
 import VideoStream from './VideoStream';
-import { startCall, endCall } from '../../services/callService';
+import { startCall, endCall, joinCall } from '../../services/callService';
 import { toast } from 'sonner';
-import { Phone, PhoneOff, Copy } from 'lucide-react';
+import { Phone, PhoneOff, Copy, MessageSquare, Users, Share2, Settings, Layout } from 'lucide-react';
 import { Input } from "@/components/ui/input"
+import ChatPanel from './ChatPanel';
+import ParticipantsList from './ParticipantsList';
+import ScreenShare from './ScreenShare';
+import CallSettings from './CallSettings';
+import VirtualBackground from './VirtualBackground';
 
 const CallPage = () => {
   const [callId, setCallId] = useState(null);
@@ -13,6 +18,12 @@ const CallPage = () => {
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
   const [joinCallId, setJoinCallId] = useState('');
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isParticipantsListOpen, setIsParticipantsListOpen] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [layout, setLayout] = useState('grid');
+  const [isVirtualBackgroundActive, setIsVirtualBackgroundActive] = useState(false);
 
   const setupPeerConnection = useCallback(() => {
     const pc = new RTCPeerConnection({
@@ -56,15 +67,24 @@ const CallPage = () => {
 
   const handleJoinCall = async () => {
     try {
-      // Implement join call logic here
-      setCallId(joinCallId);
+      const callData = await joinCall(joinCallId);
+      setCallId(callData.callId);
       setIsCallActive(true);
+      // Initialize peer connection with callData
+      // This would involve setting up WebRTC connection
       toast.success('Joined call successfully!');
     } catch (error) {
       console.error('Failed to join call:', error);
       toast.error('Failed to join call. Please try again.');
     }
   };
+
+  const toggleChat = () => setIsChatOpen(!isChatOpen);
+  const toggleParticipantsList = () => setIsParticipantsListOpen(!isParticipantsListOpen);
+  const toggleScreenShare = () => setIsScreenSharing(!isScreenSharing);
+  const toggleSettings = () => setIsSettingsOpen(!isSettingsOpen);
+  const toggleLayout = () => setLayout(layout === 'grid' ? 'speaker' : 'grid');
+  const toggleVirtualBackground = () => setIsVirtualBackgroundActive(!isVirtualBackgroundActive);
 
   const handleEndCall = async () => {
     try {
@@ -101,14 +121,20 @@ const CallPage = () => {
         <h1 className="text-4xl font-bold mb-6 text-white text-center">Flashcall Video Call</h1>
         <div className="bg-white rounded-lg shadow-md p-6">
           {isCallActive ? (
-            <>
-              <VideoStream
-                callId={callId}
-                peerConnection={peerConnection}
-                localStream={localStream}
-                remoteStream={remoteStream}
-                onStreamReady={handleStreamReady}
-              />
+            <div className="flex">
+              <div className={`flex-grow ${layout === 'grid' ? 'grid grid-cols-2 gap-4' : ''}`}>
+                <VideoStream
+                  callId={callId}
+                  peerConnection={peerConnection}
+                  localStream={localStream}
+                  remoteStream={remoteStream}
+                  onStreamReady={handleStreamReady}
+                  isVirtualBackgroundActive={isVirtualBackgroundActive}
+                />
+              </div>
+              {isChatOpen && <ChatPanel callId={callId} />}
+              {isParticipantsListOpen && <ParticipantsList callId={callId} />}
+              {isSettingsOpen && <CallSettings />}
               <div className="mt-4 flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <span className="font-semibold">Call ID:</span>
@@ -117,11 +143,31 @@ const CallPage = () => {
                     <Copy className="h-4 w-4" />
                   </Button>
                 </div>
-                <Button onClick={handleEndCall} variant="destructive">
-                  <PhoneOff className="mr-2 h-4 w-4" /> End Call
-                </Button>
+                <div className="flex space-x-2">
+                  <Button onClick={toggleChat} variant="outline">
+                    <MessageSquare className="h-4 w-4" />
+                  </Button>
+                  <Button onClick={toggleParticipantsList} variant="outline">
+                    <Users className="h-4 w-4" />
+                  </Button>
+                  <Button onClick={toggleScreenShare} variant="outline">
+                    <Share2 className="h-4 w-4" />
+                  </Button>
+                  <Button onClick={toggleSettings} variant="outline">
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                  <Button onClick={toggleLayout} variant="outline">
+                    <Layout className="h-4 w-4" />
+                  </Button>
+                  <Button onClick={toggleVirtualBackground} variant="outline">
+                    VB
+                  </Button>
+                  <Button onClick={handleEndCall} variant="destructive">
+                    <PhoneOff className="mr-2 h-4 w-4" /> End Call
+                  </Button>
+                </div>
               </div>
-            </>
+            </div>
           ) : (
             <div className="space-y-4">
               <Button onClick={handleStartCall} className="bg-green-500 hover:bg-green-600 w-full">

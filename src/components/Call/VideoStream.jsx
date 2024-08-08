@@ -1,17 +1,22 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { Mic, MicOff, Camera, CameraOff } from 'lucide-react';
+import { Button } from "@/components/ui/button";
 
-const VideoStream = ({ callId }) => {
-  const videoRef = useRef(null);
+const VideoStream = ({ callId, peerConnection, localStream, remoteStream, onStreamReady }) => {
+  const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
   const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(false);
 
   useEffect(() => {
     const setupVideoStream = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
         }
+        onStreamReady(stream);
         toast.success('Camera and microphone connected successfully');
       } catch (error) {
         console.error('Error accessing media devices:', error);
@@ -22,15 +27,21 @@ const VideoStream = ({ callId }) => {
     setupVideoStream();
 
     return () => {
-      if (videoRef.current && videoRef.current.srcObject) {
-        videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+      if (localVideoRef.current && localVideoRef.current.srcObject) {
+        localVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
       }
     };
-  }, [callId]);
+  }, [callId, onStreamReady]);
+
+  useEffect(() => {
+    if (remoteVideoRef.current && remoteStream) {
+      remoteVideoRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream]);
 
   const toggleMute = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const audioTracks = videoRef.current.srcObject.getAudioTracks();
+    if (localStream) {
+      const audioTracks = localStream.getAudioTracks();
       audioTracks.forEach(track => {
         track.enabled = !track.enabled;
       });
@@ -39,17 +50,33 @@ const VideoStream = ({ callId }) => {
     }
   };
 
+  const toggleVideo = () => {
+    if (localStream) {
+      const videoTracks = localStream.getVideoTracks();
+      videoTracks.forEach(track => {
+        track.enabled = !track.enabled;
+      });
+      setIsVideoOff(!isVideoOff);
+      toast.info(isVideoOff ? 'Camera turned on' : 'Camera turned off');
+    }
+  };
+
   return (
-    <div className="relative">
-      <div className="aspect-w-16 aspect-h-9">
-        <video ref={videoRef} autoPlay playsInline className="rounded-lg w-full h-full object-cover" />
+    <div className="grid grid-cols-2 gap-4">
+      <div className="relative">
+        <video ref={localVideoRef} autoPlay playsInline muted className="rounded-lg w-full h-full object-cover" />
+        <div className="absolute bottom-4 right-4 space-x-2">
+          <Button onClick={toggleMute} variant="secondary" size="icon">
+            {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+          </Button>
+          <Button onClick={toggleVideo} variant="secondary" size="icon">
+            {isVideoOff ? <CameraOff className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
+          </Button>
+        </div>
       </div>
-      <button
-        onClick={toggleMute}
-        className="absolute bottom-4 right-4 bg-white p-2 rounded-full shadow-md"
-      >
-        {isMuted ? '🔇' : '🔊'}
-      </button>
+      <div className="relative">
+        <video ref={remoteVideoRef} autoPlay playsInline className="rounded-lg w-full h-full object-cover" />
+      </div>
     </div>
   );
 };
